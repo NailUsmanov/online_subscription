@@ -1,0 +1,233 @@
+definitions:
+  models.Subscription:
+    properties:
+      end_date:
+        type: string
+      id:
+        type: integer
+      price:
+        type: integer
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    type: object
+  service.CreateSubscription:
+    properties:
+      end_date:
+        type: string
+      price:
+        type: integer
+      service_name:
+        type: string
+      start_date:
+        type: string
+      user_id:
+        type: string
+    type: object
+info:
+  contact: {}
+paths:
+  /subscriptions:
+    get:
+      description: Возвращает все подписки пользователя
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            items:
+              $ref: '#/definitions/models.Subscription'
+            type: array
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: List subscriptions
+      tags:
+      - subscriptions
+    post:
+      consumes:
+      - application/json
+      description: Создает новую подписку
+      parameters:
+      - description: Subscription info
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateSubscription'
+      produces:
+      - application/json
+      responses:
+        "201":
+          description: Created
+          schema:
+            $ref: '#/definitions/models.Subscription'
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Create subscription
+      tags:
+      - subscriptions
+  /subscriptions/{id}:
+    delete:
+      description: Удаляет имеющуюся подписку по ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "404":
+          description: subscription not found
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Delete subscription
+      tags:
+      - subscriptions
+    get:
+      description: Возвращает подписку по ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/models.Subscription'
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "404":
+          description: not found
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Get subscription
+      tags:
+      - subscriptions
+    put:
+      consumes:
+      - application/json
+      description: Обновляет данные подписки по ID
+      parameters:
+      - description: Subscription ID
+        in: path
+        name: id
+        required: true
+        type: integer
+      - description: Updated subscriptions
+        in: body
+        name: input
+        required: true
+        schema:
+          $ref: '#/definitions/service.CreateSubscription'
+      produces:
+      - application/json
+      responses:
+        "204":
+          description: no content
+          schema:
+            type: string
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "404":
+          description: not found
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Update subscription
+      tags:
+      - subscriptions
+  /subscriptions/sum:
+    get:
+      description: Возвращает суммарную стоимость подписок пользователя с фильтрацией
+        по сервису и периоду
+      parameters:
+      - description: User ID
+        in: query
+        name: user_id
+        required: true
+        type: string
+      - description: Service name
+        in: query
+        name: service_name
+        required: true
+        type: string
+      - description: Start date (MM-YYYY)
+        in: query
+        name: from
+        required: true
+        type: string
+      - description: End date (MM-YYYY)
+        in: query
+        name: to
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: total sum
+          schema:
+            additionalProperties:
+              type: integer
+            type: object
+        "400":
+          description: invalid input
+          schema:
+            type: string
+        "500":
+          description: internal server error
+          schema:
+            type: string
+      summary: Sum subscription cost
+      tags:
+      - subscriptions
+swagger: "2.0"
