@@ -1,5 +1,5 @@
 definitions:
-  models.Subscription:
+  github_com_NailUsmanov_online_subscription_internal_models.Subscription:
     properties:
       end_date:
         type: string
@@ -14,7 +14,7 @@ definitions:
       user_id:
         type: string
     type: object
-  service.CreateSubscription:
+  github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription:
     properties:
       end_date:
         type: string
@@ -32,13 +32,21 @@ info:
 paths:
   /subscriptions:
     get:
-      description: Возвращает все подписки пользователя
+      description: Возвращает все подписки пользователя с пагинацией
       parameters:
       - description: User ID
         in: query
         name: user_id
         required: true
         type: string
+      - description: Items per page (default 10, max 100)
+        in: query
+        name: limit
+        type: integer
+      - description: Offset for pagination (default 0)
+        in: query
+        name: offset
+        type: integer
       produces:
       - application/json
       responses:
@@ -46,7 +54,7 @@ paths:
           description: OK
           schema:
             items:
-              $ref: '#/definitions/models.Subscription'
+              $ref: '#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription'
             type: array
         "400":
           description: invalid input
@@ -69,14 +77,14 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/service.CreateSubscription'
+          $ref: '#/definitions/github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription'
       produces:
       - application/json
       responses:
         "201":
           description: Created
           schema:
-            $ref: '#/definitions/models.Subscription'
+            $ref: '#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription'
         "400":
           description: invalid input
           schema:
@@ -131,7 +139,7 @@ paths:
         "200":
           description: OK
           schema:
-            $ref: '#/definitions/models.Subscription'
+            $ref: '#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription'
         "400":
           description: invalid input
           schema:
@@ -162,7 +170,7 @@ paths:
         name: input
         required: true
         schema:
-          $ref: '#/definitions/service.CreateSubscription'
+          $ref: '#/definitions/github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription'
       produces:
       - application/json
       responses:

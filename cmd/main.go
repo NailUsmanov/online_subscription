@@ -18,19 +18,25 @@ func main() {
 	// проглатываем ошибку, чтобы не падать, если файла нет
 	_ = godotenv.Load()
 	// Запуск логгера
-	logger, err := zap.NewDevelopment()
+	cfg, err := config.Load()
 	if err != nil {
 		panic(err)
 	}
+
+	// Настраиваем логгер с уровнем из конфига
+	var logger *zap.Logger
+	if cfg.LogLevel == "debug" {
+		logger, _ = zap.NewDevelopment() // Подробный вывод
+	} else {
+		prodConfig := zap.NewProductionConfig()
+		level, _ := zap.ParseAtomicLevel(cfg.LogLevel)
+		prodConfig.Level = level
+		logger, _ = prodConfig.Build()
+	}
+
 	defer logger.Sync()
 	// задаю обертку над логгером
 	sugar := logger.Sugar()
-
-	// чтение конфига
-	cfg, err := config.Load()
-	if err != nil {
-		sugar.Fatalw("failed to load config", "error", err)
-	}
 
 	// контекст для Graceful Shutdown
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)

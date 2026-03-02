@@ -17,7 +17,7 @@ const docTemplate = `{
     "paths": {
         "/subscriptions": {
             "get": {
-                "description": "Возвращает все подписки пользователя",
+                "description": "Возвращает все подписки пользователя с пагинацией",
                 "produces": [
                     "application/json"
                 ],
@@ -32,6 +32,18 @@ const docTemplate = `{
                         "name": "user_id",
                         "in": "query",
                         "required": true
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Items per page (default 10, max 100)",
+                        "name": "limit",
+                        "in": "query"
+                    },
+                    {
+                        "type": "integer",
+                        "description": "Offset for pagination (default 0)",
+                        "name": "offset",
+                        "in": "query"
                     }
                 ],
                 "responses": {
@@ -40,7 +52,7 @@ const docTemplate = `{
                         "schema": {
                             "type": "array",
                             "items": {
-                                "$ref": "#/definitions/models.Subscription"
+                                "$ref": "#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription"
                             }
                         }
                     },
@@ -77,7 +89,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/service.CreateSubscription"
+                            "$ref": "#/definitions/github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription"
                         }
                     }
                 ],
@@ -85,7 +97,7 @@ const docTemplate = `{
                     "201": {
                         "description": "Created",
                         "schema": {
-                            "$ref": "#/definitions/models.Subscription"
+                            "$ref": "#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription"
                         }
                     },
                     "400": {
@@ -191,7 +203,7 @@ const docTemplate = `{
                     "200": {
                         "description": "OK",
                         "schema": {
-                            "$ref": "#/definitions/models.Subscription"
+                            "$ref": "#/definitions/github_com_NailUsmanov_online_subscription_internal_models.Subscription"
                         }
                     },
                     "400": {
@@ -240,7 +252,7 @@ const docTemplate = `{
                         "in": "body",
                         "required": true,
                         "schema": {
-                            "$ref": "#/definitions/service.CreateSubscription"
+                            "$ref": "#/definitions/github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription"
                         }
                     }
                 ],
@@ -316,7 +328,7 @@ const docTemplate = `{
         }
     },
     "definitions": {
-        "models.Subscription": {
+        "github_com_NailUsmanov_online_subscription_internal_models.Subscription": {
             "type": "object",
             "properties": {
                 "end_date": {
@@ -339,7 +351,7 @@ const docTemplate = `{
                 }
             }
         },
-        "service.CreateSubscription": {
+        "github_com_NailUsmanov_online_subscription_internal_service.CreateSubscription": {
             "type": "object",
             "properties": {
                 "end_date": {

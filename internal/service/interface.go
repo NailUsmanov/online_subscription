@@ -12,6 +12,6 @@ type SubscriptionRepository interface {
 	Get(ctx context.Context, id int64) (sub *models.Subscription, err error)
 	Update(ctx context.Context, sub *models.Subscription) error
 	Delete(ctx context.Context, id int64) error
-	List(ctx context.Context, userID string) ([]models.Subscription, error)
+	List(ctx context.Context, userID string, limit, offset int) ([]models.Subscription, int64, error)
 	Sum(ctx context.Context, filter models.SumSubscription) (int, error)
 }

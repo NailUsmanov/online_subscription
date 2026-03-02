@@ -128,92 +128,56 @@ func (s *Storage) Delete(ctx context.Context, id int64) error {
 }
 
 // List - выдает все имеющиеся подписки пользователя.
-func (s *Storage) List(ctx context.Context, userID string) ([]models.Subscription, error) {
-	rows, err := s.db.QueryContext(ctx, ListQuery, userID)
+func (s *Storage) List(ctx context.Context, userID string, limit, offset int) ([]models.Subscription, int64, error) {
+	var total int64
+
+	err := s.db.QueryRowContext(ctx, CountQuery, userID).Scan(&total)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get query from db: %w", err)
+		return nil, 0, fmt.Errorf("failed to count subscriptions: %w", err)
+	}
+
+	rows, err := s.db.QueryContext(ctx, ListQuery, userID, limit, offset)
+	if err != nil {
+		return nil, 0, fmt.Errorf("failed to query subscriptions: %w", err)
 	}
 	defer rows.Close()
 
-	result := make([]models.Subscription, 0)
+	var subscriptions []models.Subscription
 
 	for rows.Next() {
-		res := models.Subscription{}
+		sub := models.Subscription{}
 		err := rows.Scan(
-			&res.ID,
-			&res.ServiceName,
-			&res.Price,
-			&res.UserID,
-			&res.StartDate,
-			&res.EndDate,
+			&sub.ID,
+			&sub.ServiceName,
+			&sub.Price,
+			&sub.UserID,
+			&sub.StartDate,
+			&sub.EndDate,
 		)
 		if err != nil {
-			return nil, fmt.Errorf("scan rows: %w", err)
+			return nil, 0, fmt.Errorf("failed to scan subscription: %w", err)
 		}
-		result = append(result, res)
+		subscriptions = append(subscriptions, sub)
 	}
 
 	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("rows iteration error: %w", err)
+		return nil, 0, fmt.Errorf("rows iteration error: %w", err)
 	}
 
-	return result, nil
+	return subscriptions, total, nil
 }
 
 // Sum - подсчитывает суммарную стоимость всех подписох за выбранный период.
 func (s *Storage) Sum(ctx context.Context, filter models.SumSubscription) (int, error) {
-	rows, err := s.db.QueryContext(ctx, SumQuery,
+	var total int
+	err := s.db.QueryRowContext(ctx, SumQuery,
 		filter.UserID,
 		filter.ServiceName,
 		filter.From,
 		filter.To,
-	)
+	).Scan(&total)
 	if err != nil {
-		return 0, fmt.Errorf("query failed: %w", err)
-	}
-	defer rows.Close()
-
-	total := 0
-
-	for rows.Next() {
-		var price int
-		var startDate time.Time
-		var endDate *time.Time
-
-		if err := rows.Scan(&price, &startDate, &endDate); err != nil {
-			return 0, fmt.Errorf("scan rows: %w", err)
-		}
-
-		// считываю интервал пересечения
-		from := filter.From
-		to := filter.To
-
-		// начало фактического периода - это максимум из start_date и from
-		if startDate.After(from) {
-			from = startDate
-		}
-
-		// конец фактического периода - минимум из end_date и to
-		if endDate != nil && endDate.Before(to) {
-			to = *endDate
-		}
-
-		// если после этого from > to, то пересечения нет
-		if from.After(to) {
-			continue
-		}
-
-		// считаю количество месяцев включительно
-		y1, m1, _ := from.Date()
-		y2, m2, _ := to.Date()
-		months := (y2-y1)*12 + int(m2-m1) + 1
-		if months < 0 {
-			continue
-		}
-		total += price * months
-	}
-	if err := rows.Err(); err != nil {
-		return 0, fmt.Errorf("rows iteration error: %w", err)
+		return 0, fmt.Errorf("failed to execute sum query: %w", err)
 	}
 	return total, nil
 }

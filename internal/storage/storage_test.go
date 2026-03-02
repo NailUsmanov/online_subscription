@@ -235,6 +235,14 @@ func TestStorage_List_OK(t *testing.T) {
 	defer cleanup()
 
 	userID := "user-1"
+	limit := 10
+	offset := 0
+
+	// Мок для подсчёта общего количества
+	countRows := sqlmock.NewRows([]string{"count"}).AddRow(int64(2))
+	mock.ExpectQuery(regexp.QuoteMeta(CountQuery)).
+		WithArgs(userID).
+		WillReturnRows(countRows)
 
 	rows := sqlmock.NewRows([]string{
 		"id", "service_name", "price", "user_id", "start_date", "end_date",
@@ -242,20 +250,23 @@ func TestStorage_List_OK(t *testing.T) {
 		AddRow(int64(2), "YouTube", 200, userID, time.Now(), nil)
 
 	mock.ExpectQuery(regexp.QuoteMeta(ListQuery)).
-		WithArgs(userID).
+		WithArgs(userID, limit, offset).
 		WillReturnRows(rows)
 
-	list, err := st.List(context.Background(), userID)
+	subs, total, err := st.List(context.Background(), userID, limit, offset)
 	if err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}
 
-	if len(list) != 2 {
-		t.Fatalf("len(list) = %d, want 2", len(list))
+	if total != 2 {
+		t.Fatalf("len(list) = %d, want 2", total)
+	}
+	if len(subs) != 2 {
+		t.Fatalf("len(subs) = %d, want 2", len(subs))
 	}
 
-	if list[0].ServiceName != "Netflix" || list[1].ServiceName != "YouTube" {
-		t.Fatalf("unexpected services: %+v", list)
+	if subs[0].ServiceName != "Netflix" || subs[1].ServiceName != "YouTube" {
+		t.Fatalf("unexpected services: %+v", subs)
 	}
 
 	if err := mock.ExpectationsWereMet(); err != nil {
@@ -268,6 +279,13 @@ func TestStorage_List_RowError(t *testing.T) {
 	defer cleanup()
 
 	userID := "user-1"
+	limit := 10
+	offset := 0
+
+	countRows := sqlmock.NewRows([]string{"count"}).AddRow(int64(1))
+	mock.ExpectQuery(regexp.QuoteMeta(CountQuery)).
+		WithArgs(userID).
+		WillReturnRows(countRows)
 
 	rows := sqlmock.NewRows([]string{
 		"id", "service_name", "price", "user_id", "start_date", "end_date",
@@ -275,10 +293,10 @@ func TestStorage_List_RowError(t *testing.T) {
 		RowError(0, errors.New("scan error")) // ошибка на первой строке
 
 	mock.ExpectQuery(regexp.QuoteMeta(ListQuery)).
-		WithArgs(userID).
+		WithArgs(userID, limit, offset).
 		WillReturnRows(rows)
 
-	_, err := st.List(context.Background(), userID)
+	_, _, err := st.List(context.Background(), userID, limit, offset)
 	if err == nil {
 		t.Fatal("expected error, got nil")
 	}
@@ -302,12 +320,8 @@ func TestStorage_Sum_OK(t *testing.T) {
 		To:          to,
 	}
 
-	// первая подписка: с января по март, price=100 => 3 месяца => 300
-	// вторая: с февраля по февраль, price=50 => 1 месяц => 50
-	rows := sqlmock.NewRows([]string{"price", "start_date", "end_date"}).
-		AddRow(100, from, nil).
-		AddRow(50, time.Date(2024, time.February, 1, 0, 0, 0, 0, time.UTC),
-			time.Date(2024, time.February, 1, 0, 0, 0, 0, time.UTC))
+	// Ожидаем одну колонку с суммой
+	rows := sqlmock.NewRows([]string{"total"}).AddRow(int64(350))
 
 	mock.ExpectQuery(regexp.QuoteMeta(SumQuery)).
 		WithArgs(filter.UserID, filter.ServiceName, filter.From, filter.To).

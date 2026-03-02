@@ -179,15 +179,15 @@ func (s *Service) Delete(ctx context.Context, id int64) error {
 }
 
 // List - проверяет userID и выдает все подписки пользователя.
-func (s *Service) List(ctx context.Context, userID string) ([]models.Subscription, error) {
+func (s *Service) List(ctx context.Context, userID string, limit, offset int) ([]models.Subscription, int64, error) {
 	if _, err := uuid.Parse(userID); err != nil {
-		return nil, ErrInvalidUserID
+		return nil, 0, ErrInvalidUserID
 	}
-	result, err := s.repo.List(ctx, userID)
+	result, total, err := s.repo.List(ctx, userID, limit, offset)
 	if err != nil {
-		return nil, err
+		return nil, 0, err
 	}
-	return result, nil
+	return result, total, nil
 }
 
 func (s *Service) Sum(ctx context.Context, filter FilterForSumSubscription) (int, error) {

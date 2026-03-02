@@ -244,10 +244,12 @@ func DeleteSubscriptionsHandler(s service.Service, sugar *zap.SugaredLogger) htt
 // ListSubscriptionHandler - функция обработчик для выдачи всех подписок пользователя.
 // ListSubscriptionHandler godoc
 // @Summary      List subscriptions
-// @Description  Возвращает все подписки пользователя
+// @Description  Возвращает все подписки пользователя с пагинацией
 // @Tags         subscriptions
 // @Produce      json
 // @Param        user_id  query     string  true  "User ID"
+// @Param        limit    query     int     false  "Items per page (default 10, max 100)"
+// @Param        offset   query     int     false  "Offset for pagination (default 0)"
 // @Success      200      {array}   models.Subscription
 // @Failure      400      {string}  string  "invalid input"
 // @Failure      500      {string}  string  "internal server error"
@@ -261,7 +263,24 @@ func ListSubscriptionHandler(s service.Service, sugar *zap.SugaredLogger) http.H
 			return
 		}
 
-		subs, err := s.List(r.Context(), userID)
+		// Читаем параметры пагинации
+		limitStr := r.URL.Query().Get("limit")
+		offsetStr := r.URL.Query().Get("offset")
+
+		limit, err := strconv.Atoi(limitStr)
+		if err != nil || limit <= 0 {
+			limit = 10 // значение по умолчанию
+		}
+		if limit > 100 {
+			limit = 100 // максимальное значение
+		}
+
+		offset, err := strconv.Atoi(offsetStr)
+		if err != nil || offset < 0 {
+			offset = 0
+		}
+
+		subs, total, err := s.List(r.Context(), userID, limit, offset)
 		if err != nil {
 			switch {
 			case errors.Is(err, service.ErrInvalidUserID):
@@ -277,13 +296,25 @@ func ListSubscriptionHandler(s service.Service, sugar *zap.SugaredLogger) http.H
 		w.Header().Set("Content-Type", "application/json")
 		w.WriteHeader(http.StatusOK)
 
-		if err := json.NewEncoder(w).Encode(subs); err != nil {
+		response := map[string]interface{}{
+			"data": subs,
+			"pagination": map[string]int{
+				"limit":  limit,
+				"offset": offset,
+				"total":  int(total),
+			},
+		}
+
+		if err := json.NewEncoder(w).Encode(response); err != nil {
 			sugar.Errorf("failed to encode list response: %v", err)
 		}
 
 		sugar.Infow("subscriptions listed",
 			"user_id", userID,
 			"count", len(subs),
+			"total", total,
+			"limit", limit,
+			"offset", offset,
 		)
 	}
 }

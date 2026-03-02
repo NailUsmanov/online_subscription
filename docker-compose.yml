@@ -10,16 +10,25 @@ services:
       - "5433:5432"
     volumes:
       - db_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U subs_user -d subscriptions"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
 
   app:
     build: .
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     environment:
       SERVER_ADDR: ":8080"
       DATABASE_DSN: "postgres://subs_user:subs_pass@db:5432/subscriptions?sslmode=disable"
+      LOG_LEVEL: "info"
     ports:
       - "8080:8080"
+    restart: unless-stopped
 
 volumes:
   db_data: {}

@@ -27,7 +27,10 @@ type stubRepo struct {
 	deleteErr error
 
 	listUserID string
+	listLimit  int
+	listOffset int
 	listSubs   []models.Subscription
+	listTotal  int64
 	listErr    error
 
 	sumFilter models.SumSubscription
@@ -55,9 +58,11 @@ func (r *stubRepo) Delete(_ context.Context, id int64) error {
 	return r.deleteErr
 }
 
-func (r *stubRepo) List(_ context.Context, userID string) ([]models.Subscription, error) {
+func (r *stubRepo) List(_ context.Context, userID string, limit, offset int) ([]models.Subscription, int64, error) {
 	r.listUserID = userID
-	return r.listSubs, r.listErr
+	r.listLimit = limit
+	r.listOffset = offset
+	return r.listSubs, r.listTotal, r.listErr
 }
 
 func (r *stubRepo) Sum(_ context.Context, f models.SumSubscription) (int, error) {
@@ -414,8 +419,10 @@ func TestService_Delete_Success(t *testing.T) {
 func TestService_List_InvalidUserID(t *testing.T) {
 	repo := &stubRepo{}
 	s := NewService(repo)
+	limit := 10
+	offset := 0
 
-	_, err := s.List(context.Background(), "bad-uuid")
+	_, _, err := s.List(context.Background(), "bad-uuid", limit, offset)
 	if !errors.Is(err, ErrInvalidUserID) {
 		t.Fatalf("err = %v, want %v", err, ErrInvalidUserID)
 	}
@@ -424,22 +431,33 @@ func TestService_List_InvalidUserID(t *testing.T) {
 func TestService_List_Success(t *testing.T) {
 	subs := []models.Subscription{{ID: 1}, {ID: 2}}
 	repo := &stubRepo{
-		listSubs: subs,
+		listSubs:  subs,
+		listTotal: int64(len(subs)),
 	}
 	s := NewService(repo)
 
 	userID := "550e8400-e29b-41d4-a716-446655440000"
-	got, err := s.List(context.Background(), userID)
+	limit := 10
+	offset := 0
+	got, total, err := s.List(context.Background(), userID, limit, offset)
 	if err != nil {
 		t.Fatalf("List returned error: %v", err)
 	}
 
+	if total != 2 {
+		t.Fatalf("total = %d, want 2", total)
+	}
 	if len(got) != 2 {
 		t.Fatalf("len = %d, want 2", len(got))
 	}
-
 	if repo.listUserID != userID {
-		t.Fatalf("repo.List called with %q, want %q", repo.listUserID, userID)
+		t.Fatalf("repo.List userID = %q, want %q", repo.listUserID, userID)
+	}
+	if repo.listLimit != limit {
+		t.Fatalf("repo.List limit = %d, want %d", repo.listLimit, limit)
+	}
+	if repo.listOffset != offset {
+		t.Fatalf("repo.List offset = %d, want %d", repo.listOffset, offset)
 	}
 }
 
